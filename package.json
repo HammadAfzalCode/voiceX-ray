@@ -1,0 +1,16 @@
+{
+  "name": "voice-xray",
+  "version": "0.0.1",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "lint:backend": "npm run lint --workspace=backend",
+    "lint:frontend": "npm run lint --workspace=frontend",
+    "typecheck:backend": "npm run typecheck --workspace=backend",
+    "typecheck:frontend": "npm run typecheck --workspace=frontend",
+    "test": "npm run test --workspace=backend"
+  }
+}

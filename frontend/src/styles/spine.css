@@ -1,0 +1,67 @@
+/* Living Latency Spine — implemented in Phase 4 */
+
+.spine-row {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  height: 56px;
+}
+
+.spine-segment {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-radius: 4px;
+  background: var(--structure-dim);
+  position: relative;
+  overflow: hidden;
+}
+
+.spine-segment__label {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--structure-mid);
+  font-family: var(--font-mono);
+}
+
+.spine-segment__ms {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--structure-mid);
+  font-family: var(--font-mono);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .spine-segment {
+    transition:
+      background var(--t-stage) var(--ease-ignite),
+      box-shadow var(--t-stage) var(--ease-out);
+  }
+}
+
+.spine-segment--active {
+  background: var(--spark);
+  box-shadow: 0 0 24px -6px var(--spark-glow);
+}
+
+.spine-segment--active .spine-segment__label,
+.spine-segment--active .spine-segment__ms {
+  color: var(--ground);
+}
+
+.spine-segment--settled {
+  background: var(--bone);
+}
+
+.spine-segment--settled .spine-segment__label,
+.spine-segment--settled .spine-segment__ms {
+  color: var(--ground);
+}
+
+/* TOOL segment — only visible during tool calls */
+.spine-segment--tool {
+  flex: 0.6;
+}

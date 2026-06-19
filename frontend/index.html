@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Voice X-Ray</title>
+  </head>
+  <body>
+    <div class="instrument-frame">
+      <!-- ─── Top instrument bar ─────────────────────────────────────────── -->
+      <header class="instrument-bar">
+        <span class="wordmark">VOICE · X-RAY</span>
+
+        <span class="status-chip" role="status" aria-live="polite" aria-atomic="true">
+          <span id="status-dot" class="status-dot" data-state="idle" aria-hidden="true"></span>
+          <span id="status-label" class="status-label">IDLE</span>
+        </span>
+
+        <canvas
+          id="waveform"
+          class="waveform"
+          width="120"
+          height="32"
+          aria-hidden="true"
+        ></canvas>
+      </header>
+
+      <!-- ─── Main content ──────────────────────────────────────────────── -->
+      <main class="instrument-main">
+        <!-- Spine hero — Phase 4 -->
+        <section
+          class="spine-container"
+          id="spine-container"
+          aria-label="Pipeline latency spine"
+        >
+          <div class="spine-placeholder">
+            PIPELINE LATENCY SPINE — PHASE 4
+          </div>
+        </section>
+
+        <!-- Readout + Tools -->
+        <div class="middle-row">
+          <section class="readout-panel" aria-label="Conversation readout">
+            <div class="panel-eyebrow" aria-hidden="true">READOUT</div>
+            <div id="readout" class="readout-scroll" aria-live="polite"></div>
+          </section>
+
+          <section class="tools-panel" aria-label="Tool calls">
+            <div class="panel-eyebrow" aria-hidden="true">TOOLS</div>
+            <div id="tool-cards" class="tool-cards-scroll"></div>
+          </section>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls-row">
+          <p id="empty-state" class="empty-state">Press to speak. Watch it think.</p>
+          <button id="speak-btn" class="speak-btn" type="button">Speak</button>
+        </div>
+      </main>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

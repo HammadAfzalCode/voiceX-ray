@@ -1,0 +1,96 @@
+.tool-cards-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tool-card {
+  border: 1px solid var(--tool);
+  border-radius: 4px;
+  padding: 10px 12px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  background: color-mix(in srgb, var(--tool) 8%, var(--ground-raised));
+  position: relative;
+  overflow: hidden;
+}
+
+.tool-card__name {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tool);
+  margin-bottom: 6px;
+}
+
+.tool-card__args {
+  color: var(--bone-soft);
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.tool-card__result {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--structure-dim);
+  color: var(--bone);
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.tool-card--error {
+  border-color: var(--alert);
+  background: color-mix(in srgb, var(--alert) 8%, var(--ground-raised));
+}
+
+.tool-card--error .tool-card__name {
+  color: var(--alert);
+}
+
+/* Pending shimmer */
+.tool-card__shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--tool) 20%, transparent) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tool-card__shimmer {
+    animation: shimmer 1.4s linear infinite;
+  }
+
+  .tool-card {
+    animation: card-develop var(--t-develop) var(--ease-out) both;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes card-develop {
+  from {
+    opacity: 0;
+    filter: blur(6px) brightness(1.6);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0) brightness(1);
+  }
+}

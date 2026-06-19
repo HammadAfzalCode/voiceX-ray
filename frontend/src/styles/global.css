@@ -1,0 +1,194 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  background-color: var(--ground);
+  color: var(--bone);
+  font-family: var(--font-mono);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Instrument frame ───────────────────────────────────────────────────── */
+
+.instrument-frame {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+/* ─── Top instrument bar ─────────────────────────────────────────────────── */
+
+.instrument-bar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--structure-dim);
+  background: var(--ground-deep);
+  flex-shrink: 0;
+}
+
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--bone);
+  flex-shrink: 0;
+}
+
+.status-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--bone-soft);
+  margin: 0 auto;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--structure-dim);
+  flex-shrink: 0;
+}
+
+.status-dot[data-state='listening'],
+.status-dot[data-state='thinking'],
+.status-dot[data-state='speaking'] {
+  background: var(--spark);
+}
+
+.waveform {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+/* ─── Main content area ──────────────────────────────────────────────────── */
+
+.instrument-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 16px;
+  padding: 20px 24px;
+  overflow: hidden;
+}
+
+.spine-container {
+  flex-shrink: 0;
+}
+
+.spine-placeholder {
+  border: 1px solid var(--structure-dim);
+  border-radius: 4px;
+  padding: 12px 16px;
+  font-size: 11px;
+  color: var(--structure-mid);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.middle-row {
+  display: flex;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ─── Panel shared styles ────────────────────────────────────────────────── */
+
+.readout-panel,
+.tools-panel {
+  display: flex;
+  flex-direction: column;
+  background: var(--ground-raised);
+  border: 1px solid var(--structure-dim);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.readout-panel {
+  flex: 2;
+  min-width: 0;
+}
+
+.tools-panel {
+  flex: 1;
+  min-width: 200px;
+}
+
+.panel-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--structure-mid);
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--structure-dim);
+  flex-shrink: 0;
+}
+
+/* ─── Controls row ───────────────────────────────────────────────────────── */
+
+.controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  flex-shrink: 0;
+  padding: 8px 0 4px;
+}
+
+.empty-state {
+  font-size: 14px;
+  color: var(--bone-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.speak-btn {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ground);
+  background: var(--spark);
+  border: none;
+  border-radius: 4px;
+  padding: 10px 28px;
+  min-width: 110px;
+  min-height: 44px;
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease-out),
+    box-shadow var(--t-fast) var(--ease-out);
+}
+
+.speak-btn:hover {
+  background: var(--spark-glow);
+  box-shadow: 0 0 16px -4px var(--spark-glow);
+}
+
+.speak-btn:focus-visible {
+  outline: 2px solid var(--spark);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .speak-btn {
+    transition: none;
+  }
+}
