@@ -7,7 +7,13 @@ import './styles/tool-cards.css';
 import { Recorder } from '@audio/recorder';
 import { Readout } from '@ui/readout';
 import { connectSocket, getSocket } from '@ws/socket';
-import type { LlmSentencePayload, SttFinalPayload } from '@ws/ws-messages';
+import type {
+  LlmSentencePayload,
+  LlmTokenPayload,
+  SttFinalPayload,
+  TurnEndPayload,
+  TurnStartPayload,
+} from '@ws/ws-messages';
 import { WsEvents } from '@ws/ws-messages';
 
 // ─── DOM ──────────────────────────────────────────────────────────────────────
@@ -70,15 +76,27 @@ function enqueueSpeech(text: string): void {
   drainSynthQueue();
 }
 
+// ─── Token rAF batching ───────────────────────────────────────────────────────
+
+let pendingTokens = '';
+let rafPending = false;
+
+function flushTokens(): void {
+  if (pendingTokens) {
+    readout.appendToken(pendingTokens);
+    pendingTokens = '';
+  }
+  rafPending = false;
+}
+
 // ─── Recorder ────────────────────────────────────────────────────────────────
 
 const recorder = new Recorder({
   onInterim: (_text) => {
-    // Could show interim text in the readout — skipped for Phase 1.
+    // Interim results not shown in Phase 2 — used in Phase 4 readout.
   },
   onFinal: (text) => {
     getSocket().emit(WsEvents.USER_TRANSCRIPT, { text, isFinal: true });
-    setStatus('thinking');
     emptyState.style.display = 'none';
   },
   onError: (message) => {
@@ -92,13 +110,33 @@ const recorder = new Recorder({
 
 const socket = getSocket();
 
+socket.on(WsEvents.TURN_START, (_payload: TurnStartPayload) => {
+  readout.startAgentTurn();
+  setStatus('thinking');
+});
+
 socket.on(WsEvents.STT_FINAL, (payload: SttFinalPayload) => {
   readout.appendUserLine(payload.text);
 });
 
+socket.on(WsEvents.LLM_TOKEN, (payload: LlmTokenPayload) => {
+  pendingTokens += payload.token;
+  if (!rafPending) {
+    rafPending = true;
+    requestAnimationFrame(flushTokens);
+  }
+});
+
 socket.on(WsEvents.LLM_SENTENCE, (payload: LlmSentencePayload) => {
-  readout.appendAgentLine(payload.text);
   enqueueSpeech(payload.text);
+});
+
+socket.on(WsEvents.TURN_END, (_payload: TurnEndPayload) => {
+  flushTokens();
+  readout.settleAgentTurn();
+  if (synthQueue.length === 0 && !isSpeaking) {
+    setStatus('idle');
+  }
 });
 
 // ─── Controls ────────────────────────────────────────────────────────────────
