@@ -5,6 +5,18 @@
   align-items: stretch;
   gap: 2px;
   height: 56px;
+  position: relative;
+  overflow: hidden;
+}
+
+.spine-ghost {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--structure-mid);
+  pointer-events: none;
+  z-index: 1;
 }
 
 .spine-segment {
