@@ -14,7 +14,6 @@ export class Readout {
     this.scrollToBottom();
   }
 
-  // Phase 1: append a complete agent line (used by echo loop and sentence events)
   appendAgentLine(text: string): void {
     const line = document.createElement('div');
     line.className = 'readout-line readout-line--agent';
@@ -23,27 +22,39 @@ export class Readout {
     this.scrollToBottom();
   }
 
-  // Phase 2: streaming — open a new agent line with a blinking cursor
   startAgentTurn(): void {
-    this.currentAgentLine?.classList.remove('readout-line--streaming');
+    // Fade all existing lines to past styling
+    for (const line of this.el.querySelectorAll('.readout-line')) {
+      line.classList.add('readout-line--past');
+    }
+
     const line = document.createElement('div');
-    line.className = 'readout-line readout-line--agent readout-line--streaming';
+    line.className = 'readout-line readout-line--agent';
+
+    const textEl = document.createElement('span');
+    textEl.className = 'readout-text';
+
+    const cursor = document.createElement('span');
+    cursor.className = 'readout-cursor';
+    cursor.setAttribute('aria-hidden', 'true');
+
+    line.appendChild(textEl);
+    line.appendChild(cursor);
     this.el.appendChild(line);
     this.currentAgentLine = line;
     this.scrollToBottom();
   }
 
-  // Phase 2: append a token chunk to the current streaming line
   appendToken(text: string): void {
     if (!this.currentAgentLine) this.startAgentTurn();
-    const current = this.currentAgentLine!;
-    current.textContent = (current.textContent ?? '') + text;
+    const textEl = this.currentAgentLine!.querySelector<HTMLElement>('.readout-text');
+    if (textEl) textEl.textContent = (textEl.textContent ?? '') + text;
     this.scrollToBottom();
   }
 
-  // Phase 2: settle the current streaming line (remove cursor)
   settleAgentTurn(): void {
-    this.currentAgentLine?.classList.remove('readout-line--streaming');
+    if (!this.currentAgentLine) return;
+    this.currentAgentLine.querySelector('.readout-cursor')?.remove();
     this.currentAgentLine = null;
   }
 

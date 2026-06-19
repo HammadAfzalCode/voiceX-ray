@@ -6,9 +6,12 @@ import './styles/tool-cards.css';
 
 import { Player } from '@audio/player';
 import { Recorder } from '@audio/recorder';
+import { Waveform } from '@audio/waveform';
 import { Readout } from '@ui/readout';
+import { Spine } from '@ui/spine';
 import { connectSocket, getSocket } from '@ws/socket';
 import type {
+  LatencyMarkPayload,
   LlmSentencePayload,
   LlmTokenPayload,
   SttFinalPayload,
@@ -25,6 +28,8 @@ const statusDot = document.getElementById('status-dot')!;
 const statusLabel = document.getElementById('status-label')!;
 const readoutEl = document.getElementById('readout')!;
 const emptyState = document.getElementById('empty-state')!;
+const spineContainer = document.getElementById('spine-container')!;
+const waveformCanvas = document.getElementById('waveform') as HTMLCanvasElement;
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -32,6 +37,8 @@ type Status = 'idle' | 'listening' | 'thinking' | 'speaking';
 
 const readout = new Readout(readoutEl);
 const player = new Player();
+const spine = new Spine(spineContainer);
+const waveform = new Waveform(waveformCanvas);
 
 function setStatus(state: Status): void {
   const labels: Record<Status, string> = {
@@ -92,7 +99,7 @@ function flushTokens(): void {
   rafPending = false;
 }
 
-// ─── Base64 → Uint8Array ──────────────────────────────────────────────────────
+// ─── Base64 → ArrayBuffer ─────────────────────────────────────────────────────
 
 function base64ToBytes(b64: string): ArrayBuffer {
   const binary = atob(b64);
@@ -108,7 +115,7 @@ function base64ToBytes(b64: string): ArrayBuffer {
 
 const recorder = new Recorder({
   onInterim: (_text) => {
-    // Interim results not shown in Phase 3 — used in Phase 4 readout.
+    // Interim text not shown in Phase 4 — placeholder for Phase 5 readout.
   },
   onFinal: (text) => {
     getSocket().emit(WsEvents.USER_TRANSCRIPT, { text, isFinal: true });
@@ -128,6 +135,8 @@ let elevenLabsMode = false;
 
 socket.on(WsEvents.TURN_START, (_payload: TurnStartPayload) => {
   elevenLabsMode = false;
+  spine.reset();
+  player.stop();
   readout.startAgentTurn();
   setStatus('thinking');
 });
@@ -154,10 +163,47 @@ socket.on(WsEvents.TTS_AUDIO, (payload: TtsAudioPayload) => {
   setStatus('speaking');
 });
 
-socket.on(WsEvents.TURN_END, (_payload: TurnEndPayload) => {
+socket.on(WsEvents.LATENCY_MARK, (payload: LatencyMarkPayload) => {
+  const { stage, tMs } = payload;
+  switch (stage) {
+    case 'transcript_received':
+      spine.ignite('HEAR');
+      break;
+    case 'llm_request_sent':
+      spine.settle('HEAR', tMs);
+      spine.ignite('THINK');
+      break;
+    case 'llm_first_token':
+      spine.settle('THINK', tMs);
+      spine.ignite('COMPOSE');
+      break;
+    case 'tool_call_start':
+      spine.settle('COMPOSE', tMs);
+      spine.ignite('TOOL');
+      break;
+    case 'tool_call_end':
+      spine.settle('TOOL', tMs);
+      spine.ignite('COMPOSE');
+      break;
+    case 'first_sentence_ready':
+      spine.settle('COMPOSE', tMs);
+      spine.ignite('VOICE');
+      break;
+    case 'first_tts_audio':
+      spine.settle('VOICE', tMs);
+      spine.ignite('SPEAK');
+      break;
+    default:
+      break;
+  }
+});
+
+socket.on(WsEvents.TURN_END, (payload: TurnEndPayload) => {
   flushTokens();
   readout.settleAgentTurn();
   player.endTurn();
+  const turnComplete = payload.latencyTrace.turn_complete ?? 0;
+  spine.settleActive(turnComplete);
   if (elevenLabsMode) {
     setStatus('idle'); // TODO Phase 3b: transition on audio.ended instead
   } else if (synthQueue.length === 0 && !isSpeaking) {
@@ -170,11 +216,13 @@ socket.on(WsEvents.TURN_END, (_payload: TurnEndPayload) => {
 speakBtn.addEventListener('click', () => {
   if (recorder.isRunning) {
     recorder.stop();
+    waveform.stop();
     speakBtn.textContent = 'Speak';
     setStatus('idle');
   } else {
     connectSocket();
     recorder.start();
+    void waveform.start();
     speakBtn.textContent = 'Stop';
     setStatus('listening');
   }
