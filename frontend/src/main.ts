@@ -34,6 +34,7 @@ const emptyState = document.getElementById('empty-state')!;
 const spineContainer = document.getElementById('spine-container')!;
 const waveformCanvas = document.getElementById('waveform') as HTMLCanvasElement;
 const toolCardsEl = document.getElementById('tool-cards')!;
+const connectionBanner = document.getElementById('connection-banner')!;
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -138,6 +139,10 @@ const recorder = new Recorder({
     console.error('[recorder]', message);
     speakBtn.textContent = 'Speak';
     setStatus('idle');
+    if (message.includes('not-allowed') || message.includes('denied')) {
+      emptyState.textContent = 'No mic access. Enable it in your browser, then press Speak again.';
+      emptyState.style.display = '';
+    }
   },
 });
 
@@ -146,6 +151,35 @@ const recorder = new Recorder({
 const socket = getSocket();
 let elevenLabsMode = false;
 let bargeInFired = false;
+
+// ─── Connection banner ────────────────────────────────────────────────────────
+
+let hasEverConnected = false;
+
+function showConnectionBanner(message: string, variant: 'alert' | 'reconnected'): void {
+  connectionBanner.textContent = message;
+  connectionBanner.className =
+    variant === 'reconnected'
+      ? 'connection-banner connection-banner--reconnected'
+      : 'connection-banner';
+  connectionBanner.hidden = false;
+}
+
+function hideConnectionBanner(): void {
+  connectionBanner.hidden = true;
+}
+
+socket.on('connect', () => {
+  if (hasEverConnected) {
+    showConnectionBanner('Reconnected.', 'reconnected');
+    setTimeout(hideConnectionBanner, 2500);
+  }
+  hasEverConnected = true;
+});
+
+socket.on('disconnect', () => {
+  if (hasEverConnected) showConnectionBanner('Lost the line. Reconnecting…', 'alert');
+});
 
 socket.on(WsEvents.TURN_START, (_payload: TurnStartPayload) => {
   elevenLabsMode = false;
@@ -255,3 +289,7 @@ speakBtn.addEventListener('click', () => {
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
 setStatus('idle');
+
+if (new URLSearchParams(window.location.search).get('demo') === '1') {
+  document.body.classList.add('demo');
+}

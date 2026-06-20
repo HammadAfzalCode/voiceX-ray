@@ -1,0 +1,11 @@
+{
+  "extends": ["@commitlint/config-conventional"],
+  "rules": {
+    "scope-enum": [
+      2,
+      "always",
+      ["backend", "frontend", "domain", "infra", "ws", "deploy", "deps", "ci", "docs"]
+    ],
+    "subject-case": [2, "never", ["start-case", "pascal-case", "upper-case"]]
+  }
+}
