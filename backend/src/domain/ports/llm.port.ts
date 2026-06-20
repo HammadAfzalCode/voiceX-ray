@@ -1,11 +1,6 @@
 export type LlmDelta =
   | { readonly type: 'token'; readonly text: string }
-  | {
-      readonly type: 'tool_call_delta';
-      readonly id: string;
-      readonly name: string;
-      readonly argsChunk: string;
-    }
+  | { readonly type: 'tool_call'; readonly id: string; readonly name: string; readonly args: string }
   | { readonly type: 'done' };
 
 export interface LlmToolCall {

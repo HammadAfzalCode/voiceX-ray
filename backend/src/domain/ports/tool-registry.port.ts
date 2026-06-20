@@ -7,6 +7,6 @@ export interface ToolSpec {
 }
 
 export interface ToolRegistryPort {
-  list(): readonly ToolSpec[];
+  list(): readonly unknown[];
   execute(name: string, args: unknown): Promise<unknown>;
 }

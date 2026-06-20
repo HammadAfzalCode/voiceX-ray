@@ -9,12 +9,15 @@ import { Recorder } from '@audio/recorder';
 import { Waveform } from '@audio/waveform';
 import { Readout } from '@ui/readout';
 import { Spine } from '@ui/spine';
+import { ToolCards } from '@ui/tool-cards';
 import { connectSocket, getSocket } from '@ws/socket';
 import type {
   LatencyMarkPayload,
   LlmSentencePayload,
   LlmTokenPayload,
   SttFinalPayload,
+  ToolCallPayload,
+  ToolResultPayload,
   TtsAudioPayload,
   TurnEndPayload,
   TurnStartPayload,
@@ -30,6 +33,7 @@ const readoutEl = document.getElementById('readout')!;
 const emptyState = document.getElementById('empty-state')!;
 const spineContainer = document.getElementById('spine-container')!;
 const waveformCanvas = document.getElementById('waveform') as HTMLCanvasElement;
+const toolCardsEl = document.getElementById('tool-cards')!;
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -39,6 +43,7 @@ const readout = new Readout(readoutEl);
 const player = new Player();
 const spine = new Spine(spineContainer);
 const waveform = new Waveform(waveformCanvas);
+const toolCards = new ToolCards(toolCardsEl);
 
 function setStatus(state: Status): void {
   const labels: Record<Status, string> = {
@@ -115,7 +120,7 @@ function base64ToBytes(b64: string): ArrayBuffer {
 
 const recorder = new Recorder({
   onInterim: (_text) => {
-    // Interim text not shown in Phase 4 — placeholder for Phase 5 readout.
+    // placeholder for Phase 5 interim readout
   },
   onFinal: (text) => {
     getSocket().emit(WsEvents.USER_TRANSCRIPT, { text, isFinal: true });
@@ -137,6 +142,7 @@ socket.on(WsEvents.TURN_START, (_payload: TurnStartPayload) => {
   elevenLabsMode = false;
   spine.reset();
   player.stop();
+  toolCards.clear();
   readout.startAgentTurn();
   setStatus('thinking');
 });
@@ -161,6 +167,14 @@ socket.on(WsEvents.TTS_AUDIO, (payload: TtsAudioPayload) => {
   elevenLabsMode = true;
   player.pushChunk(base64ToBytes(payload.data), payload.mime);
   setStatus('speaking');
+});
+
+socket.on(WsEvents.TOOL_CALL, (payload: ToolCallPayload) => {
+  toolCards.addCard(payload.callId, payload.name, payload.args);
+});
+
+socket.on(WsEvents.TOOL_RESULT, (payload: ToolResultPayload) => {
+  toolCards.fillResult(payload.callId, payload.result);
 });
 
 socket.on(WsEvents.LATENCY_MARK, (payload: LatencyMarkPayload) => {
