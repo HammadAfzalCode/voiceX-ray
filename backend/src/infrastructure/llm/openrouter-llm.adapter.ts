@@ -5,6 +5,12 @@ import OpenAI from 'openai';
 import type { LlmDelta, LlmMessage, LlmPort } from '@domain/ports/llm.port';
 import type { EnvConfig } from '@infrastructure/config/env.config';
 
+interface AccumulatedCall {
+  id: string;
+  name: string;
+  args: string;
+}
+
 @Injectable()
 export class OpenRouterLlmAdapter implements LlmPort {
   private readonly client: OpenAI;
@@ -20,7 +26,7 @@ export class OpenRouterLlmAdapter implements LlmPort {
 
   async *stream(
     messages: readonly LlmMessage[],
-    _tools: readonly unknown[],
+    tools: readonly unknown[],
   ): AsyncGenerator<LlmDelta> {
     const openaiMessages = messages.map<OpenAI.Chat.ChatCompletionMessageParam>((m) => {
       switch (m.role) {
@@ -29,19 +35,37 @@ export class OpenRouterLlmAdapter implements LlmPort {
         case 'user':
           return { role: 'user', content: m.content };
         case 'assistant':
+          if (m.tool_calls && m.tool_calls.length > 0) {
+            return {
+              role: 'assistant',
+              content: m.content || null,
+              tool_calls: m.tool_calls.map((tc) => ({
+                id: tc.id,
+                type: 'function' as const,
+                function: { name: tc.function.name, arguments: tc.function.arguments },
+              })),
+            };
+          }
           return { role: 'assistant', content: m.content };
         case 'tool':
           return { role: 'tool', content: m.content, tool_call_id: m.tool_call_id ?? '' };
       }
     });
 
-    const stream = await this.client.chat.completions.create({
+    const params: OpenAI.Chat.ChatCompletionCreateParamsStreaming = {
       model: this.model,
       messages: openaiMessages,
       stream: true,
-    });
+    };
 
-    for await (const chunk of stream) {
+    if (tools.length > 0) {
+      params.tools = tools as OpenAI.Chat.ChatCompletionTool[];
+    }
+
+    const chatStream = await this.client.chat.completions.create(params);
+    const accumulated = new Map<number, AccumulatedCall>();
+
+    for await (const chunk of chatStream) {
       const choice = chunk.choices[0];
       if (!choice) continue;
 
@@ -49,18 +73,31 @@ export class OpenRouterLlmAdapter implements LlmPort {
 
       if (delta.tool_calls) {
         for (const tc of delta.tool_calls) {
-          yield {
-            type: 'tool_call_delta',
-            id: tc.id ?? '',
-            name: tc.function?.name ?? '',
-            argsChunk: tc.function?.arguments ?? '',
-          };
+          const idx = tc.index;
+          const existing = accumulated.get(idx);
+          if (!existing) {
+            accumulated.set(idx, {
+              id: tc.id ?? '',
+              name: tc.function?.name ?? '',
+              args: tc.function?.arguments ?? '',
+            });
+          } else {
+            existing.args += tc.function?.arguments ?? '';
+          }
         }
       } else if (delta.content) {
         yield { type: 'token', text: delta.content };
       }
 
-      if (finish_reason === 'stop' || finish_reason === 'tool_calls') {
+      if (finish_reason === 'tool_calls') {
+        for (const call of accumulated.values()) {
+          yield { type: 'tool_call', id: call.id, name: call.name, args: call.args };
+        }
+        yield { type: 'done' };
+        return;
+      }
+
+      if (finish_reason === 'stop') {
         yield { type: 'done' };
         return;
       }
