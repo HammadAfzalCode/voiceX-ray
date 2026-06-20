@@ -11,6 +11,17 @@
     "lint:frontend": "npm run lint --workspace=frontend",
     "typecheck:backend": "npm run typecheck --workspace=backend",
     "typecheck:frontend": "npm run typecheck --workspace=frontend",
-    "test": "npm run test --workspace=backend"
+    "test": "npm run test --workspace=backend",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "backend/src/**/*.ts": "npm run -w backend lint",
+    "frontend/src/**/*.ts": "npm run -w frontend lint"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.0.2",
+    "@commitlint/config-conventional": "^21.0.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.8"
   }
 }
