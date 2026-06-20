@@ -38,6 +38,10 @@ export class Player {
     if (this.ready) this.drainQueue();
   }
 
+  get isPlaying(): boolean {
+    return this.playing;
+  }
+
   stop(): void {
     this.audio.pause();
     this.audio.src = '';

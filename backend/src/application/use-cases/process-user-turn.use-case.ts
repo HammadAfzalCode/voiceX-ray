@@ -31,7 +31,11 @@ export class ProcessUserTurnUseCase {
     @Inject(TOOL_REGISTRY_PORT) private readonly tools: ToolRegistryPort,
   ) {}
 
-  async execute(transcript: string, output: TurnOutputPort): Promise<void> {
+  async execute(
+    transcript: string,
+    output: TurnOutputPort,
+    signal?: AbortSignal,
+  ): Promise<void> {
     const turnId = randomUUID();
     const t0 = performance.now();
     const trace: MutableLatencyTrace = new Map<SpineStage, number>();
@@ -41,6 +45,14 @@ export class ProcessUserTurnUseCase {
       const tMs = performance.now() - t0;
       trace.set(stage, tMs);
       output.onLatencyMark(turnId, stage, tMs);
+    };
+
+    const checkAborted = (): void => {
+      if (signal?.aborted) {
+        const err = new Error('The operation was aborted');
+        err.name = 'AbortError';
+        throw err;
+      }
     };
 
     output.onTurnStart(turnId);
@@ -74,8 +86,10 @@ export class ProcessUserTurnUseCase {
           firstSentence = false;
         }
         output.onSentence(turnId, sentence.text);
+        checkAborted();
 
         for await (const chunk of this.tts.synthesize(sentence.text)) {
+          checkAborted();
           if (firstTtsAudio) {
             mark('first_tts_audio');
             firstTtsAudio = false;
@@ -115,6 +129,8 @@ export class ProcessUserTurnUseCase {
       });
 
       for (const tc of pendingCalls) {
+        checkAborted();
+
         let parsedArgs: unknown;
         try {
           parsedArgs = JSON.parse(tc.args) as unknown;
@@ -144,7 +160,7 @@ export class ProcessUserTurnUseCase {
 
       mark('tool_call_end');
 
-      // ── Second LLM stream ────────────────────────────────────────────────────
+      // ── Second LLM stream ──────────────────────────────────────────────────
       for await (const delta of this.llm.stream(currentMessages, toolList)) {
         if (delta.type === 'token') {
           await processToken(delta.text);
@@ -156,6 +172,7 @@ export class ProcessUserTurnUseCase {
 
     // ── Flush remaining sentences ─────────────────────────────────────────────
     for (const sentence of chunker.flush()) {
+      checkAborted();
       if (firstSentence) {
         mark('first_sentence_ready');
         firstSentence = false;
@@ -163,6 +180,7 @@ export class ProcessUserTurnUseCase {
       output.onSentence(turnId, sentence.text);
 
       for await (const chunk of this.tts.synthesize(sentence.text)) {
+        checkAborted();
         if (firstTtsAudio) {
           mark('first_tts_audio');
           firstTtsAudio = false;

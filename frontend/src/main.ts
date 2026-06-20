@@ -120,7 +120,15 @@ function base64ToBytes(b64: string): ArrayBuffer {
 
 const recorder = new Recorder({
   onInterim: (_text) => {
-    // placeholder for Phase 5 interim readout
+    if (!bargeInFired && elevenLabsMode && player.isPlaying) {
+      bargeInFired = true;
+      socket.emit(WsEvents.USER_INTERRUPT, {});
+      player.stop();
+      window.speechSynthesis.cancel();
+      spine.reset();
+      toolCards.clear();
+      setStatus('listening');
+    }
   },
   onFinal: (text) => {
     getSocket().emit(WsEvents.USER_TRANSCRIPT, { text, isFinal: true });
@@ -137,9 +145,11 @@ const recorder = new Recorder({
 
 const socket = getSocket();
 let elevenLabsMode = false;
+let bargeInFired = false;
 
 socket.on(WsEvents.TURN_START, (_payload: TurnStartPayload) => {
   elevenLabsMode = false;
+  bargeInFired = false;
   spine.reset();
   player.stop();
   toolCards.clear();
